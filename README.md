@@ -59,7 +59,7 @@ The pipeline is structured into isolated, containerised services:
 *   Vector Service – Manages embeddings and semantic search using Qdrant.
 *   Relational Service – Stores food catalog, nutritional data, and user logs (SQLite + SQLAlchemy).
 *   LLM Integration – Local Ollama model generates grounded insights from retrieved data.
-*   
+  
 Data flows cleanly from image ingestion → OCR → vector embedding → LLM → API response.
 
 ---
