@@ -1,6 +1,6 @@
 # Menu-to-Insight: OCR & RAG Food Recommendation Pipeline
 
-Menu-to-Insight is a containerised AI pipeline that transforms restaurant menu images into structured dietary recommendations. Menu text is extracted via OCR, embedded in a vector database, and retrieved as context for a local LLM to generate grounded and verifiable food insights.
+Menu-to-Insight is a containerised AI pipeline that transforms restaurant menu images into structured dietary recommendations. Menu text is extracted via OCR, embedded in a vector database, and retrieved as context for a local LLM to generate grounded and verifiable insights with nutritional reasoning.
 
 The system is built with a decoupled architecture, orchestrated via Docker Compose, with separate services for API, Vision, and Vector processing. Structured logging and observability ensure reliable communication and traceable data flow across services.
 
@@ -14,7 +14,7 @@ Users can upload a menu image to receive structured menu items along with goal-a
 
 **Image Processing (Vision Service)**
 
-*   Image preprocessing
+*   Preprocesses menu images for OCR accuracy
 *   Layout detection to segment menu regions
 *   OCR extraction using PaddleOCR and OpenCV
 
@@ -22,12 +22,11 @@ Users can upload a menu image to receive structured menu items along with goal-a
 
 *   Menu items embedded and stored in Qdrant for semantic search
 *   A similarity threshold ensures only high‑confidence matches are used
-*  Relevant nutritional data retrieved and passed as context to the LLM
+*   Relevant nutritional data retrieved and passed as context to the LLM
 
 **LLM‑Based Recommendations**
 
 *   A local Ollama LLM generates:
-
     *   Top 3 menu recommendations
     *   Goal‑aware suggestions based on remaining calories and protein
 *   The model is strictly constrained to retrieved nutritional context (no hallucinations)
