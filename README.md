@@ -1,6 +1,8 @@
-# Menu-to-Insight: Microservices OCR & RAG Pipeline
+# Menu-to-Insight: OCR & RAG Food Recommendation Pipeline
 
-Menu-to-Insight is a containerised system that converts restaurant menu images into helpful dietary recommendations. By combining OCR-based layout detection with Retrieval-Augmented Generation (RAG), the application provides grounded nutritional recommendations with verifiable reasoning. The system is built on a modular microservices architecture, ensuring a traceable data flow from raw image ingestion to final LLM inference.
+Menu-to-Insight is a containerised AI pipeline that transforms restaurant menu images into structured dietary recommendations. Menu text is extracted via OCR, embedded in a vector database, and retrieved as context for a local LLM to generate grounded and verifiable insights with nutritional reasoning.
+
+The system is built with a decoupled architecture, orchestrated via Docker Compose, with separate services for API, Vision, and Vector processing. Structured logging and observability ensure reliable communication and traceable data flow across services.
 
 ---
 
@@ -8,99 +10,62 @@ Menu-to-Insight is a containerised system that converts restaurant menu images i
 
 ### Menu Analysis (OCR + RAG)
 
-Users can upload a photo of a restaurant menu and receive structured menu items along with goal‑aware dietary recommendations.
+Users can upload a menu image to receive structured menu items along with goal-aware dietary recommendations.
 
 **Image Processing (Vision Service)**
 
-*   Image preprocessing
+*   Preprocesses menu images for OCR accuracy
 *   Layout detection to segment menu regions
-*   OCR to extract text from each region
+*   OCR extraction using PaddleOCR and OpenCV
 
 **Retrieval‑Augmented Generation**
 
-*   Semantic search using Qdrant
-*   Extracted menu items are embedded and matched against a vector database of known foods
+*   Menu items embedded and stored in Qdrant for semantic search
 *   A similarity threshold ensures only high‑confidence matches are used
-*   Relevant foods and their nutritional data are retrieved and passed to the LLM as context
+*   Relevant nutritional data retrieved and passed as context to the LLM
 
 **LLM‑Based Recommendations**
 
-*   A local LLM (via Ollama) generates:
-
+*   A local Ollama LLM generates:
     *   Top 3 menu recommendations
     *   Goal‑aware suggestions based on remaining calories and protein
-*   The model is strictly constrained to retrieved nutritional context (no free hallucination)
+*   The model is strictly constrained to retrieved nutritional context (no hallucinations)
 
 **Explainability**
 
-*   Each recommendation includes the nutritional data and reasoning used to reach the decision
+*   Each suggestion includes nutritional reasoning and data to ensure transparency
 
 ---
 
 ### Food Logging
 
-Core food‑tracking functionality operates independently of AI features.
+Independent food-tracking functionality includes:
 
-*   Manual food logging with gram‑based quantities
+*   Manual logging with gram-based quantities
 *   Automatic calculation of calories and macronutrients
-*   Full CRUD support for food log entries
-*   Daily summaries compared against user‑defined targets
+*   Full CRUD support for entries and daily summaries
+*   Comparison against user-defined dietary goals
 
 ---
 
 ## Architecture Overview
 
-The system consists of isolated services communicating over HTTP, each responsible for a single concern.
+The pipeline is structured into isolated, containerised services:
 
-### High‑Level Flow
 
-*   The frontend communicates exclusively with the API service
-*   Images are forwarded to the Vision service for OCR
-*   Extracted menu items are sent to the Vector service for semantic matching
-*   Nutritional data is retrieved from the Relational service
-*   The LLM (via Ollama) generates grounded recommendations
-*   Results are aggregated by the API and returned to the client
+*   API Service – Orchestrates requests, validates input, and aggregates results.
+*   Vision Service – Handles OCR and menu layout detection.
+*   Vector Service – Manages embeddings and semantic search using Qdrant.
+*   Relational Service – Stores food catalog, nutritional data, and user logs (SQLite + SQLAlchemy).
+*   LLM Integration – Local Ollama model generates grounded insights from retrieved data.
+  
+Data flows cleanly from image ingestion → OCR → vector embedding → LLM → API response.
 
 ---
 
-## Services
+## Tech Stack 
 
-### `api` — API Gateway
-
-*   Request validation and orchestration
-*   Coordinates internal service calls and LLM interactions
-*   Technology: FastAPI
-
-### `relational` — Relational Data Service (SQLite)
-
-*   Authoritative storage for:
-
-    *   Food catalog
-    *   Food logs
-    *   User goals
-*   Provides structured nutritional data
-*   Integrates with the Vector service for semantic lookup and seeding
-*   Technologies: FastAPI, SQLAlchemy, Pandas, httpx
-
-### `vector` — Semantic Search Service
-
-*   Manages embeddings and similarity search
-*   Interfaces with Qdrant
-*   Generates embeddings via Ollama
-*   Seeds data only when required on startup
-*   Technologies: FastAPI, Qdrant Client, httpx
-
-### `vision` — OCR Service
-
-*   Image preprocessing
-*   Layout detection
-*   Image‑to‑text extraction
-*   Technologies: FastAPI, PaddleOCR, OpenCV
-
-### External Services
-
-*   **Qdrant** — Vector database for food embeddings
-*   **Ollama** — Local LLM and embedding provider
+Python, FastAPI, Docker, Ollama, Qdrant, PaddleOCR, OpenCV, SQLAlchemy, Pandas
 
 ---
 
@@ -111,53 +76,20 @@ The system consists of isolated services communicating over HTTP, each responsib
 *   **Docker** — Ensure Docker is installed and running
 *   **Ollama** — Install locally and pull the required models:
 
-    ```bash
+```bash
     ollama pull qwen2.5:0.5b
     ollama pull all-minilm
-    ```
-
-    The `api` service uses `qwen2.5:0.5b` for text generation
-
-    `all-minilm` is used for embeddings
-
----
-
-### Environment Configuration
-
-Create a `.env` file in the project root (next to `docker-compose.yml`) with the following values:
-
-```env
-RELATIONAL_SERVICE_URL=http://relational:8000
-VECTOR_SERVICE_URL=http://vector:8000
-VISION_SERVICE_URL=http://vision:8000
-DATABASE_URL=sqlite:///./data/foodtracker.db
-QDRANT_URL=http://qdrant:6333
-OLLAMA_BASE_URL=http://host.docker.internal:11434
-CHAT_MODEL=qwen2.5:0.5b
-EMBED_MODEL=all-minilm
 ```
-
-**Note**: `OLLAMA_BASE_URL` is set to `http://host.docker.internal:11434` to allow Docker Compose services to access Ollama running on the host machine. Adjust this if Ollama is running elsewhere (for example, inside another container).
-
----
 
 ### Start Services
 
-From the project root directory:
-
 ```bash
-docker compose up --build
+    docker compose up --build
 ```
-
----
 
 ### Access
 
-Once all services are running (initial startup may take a few moments due to data seeding), open your browser and navigate to:
-
-```
-http://localhost:8000
-```
+Open your browser at http://localhost:8000
 
 ---
 
